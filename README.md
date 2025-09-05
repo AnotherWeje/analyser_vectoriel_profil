@@ -10,14 +10,14 @@ Le score de matching final est un score composite qui évalue à la fois la simi
 
 Le système est composé de plusieurs services :
 - **API FastAPI (`main.py`)** : Le point d'entrée de l'application, qui expose les endpoints pour ajouter des candidats et rechercher des offres.
-- **Service NLP (`services/nlp_service.py`)** : Utilise un modèle `Sentence-Transformers` pour convertir les textes en vecteurs numériques (embeddings).
-- **Base de Données Vectorielle (`services/vector_db.py`)** : Utilise **FAISS** (de Facebook AI) pour stocker les vecteurs et effectuer des recherches de similarité très rapides.
+- **Service NLP (`services/nlp_service.py`)** : Utilise un modèle `Sentence-Transformers` (`paraphrase-multilingual-MiniLM-L12-v2`) pour convertir les textes en vecteurs numériques (embeddings).
+- **Base de Données Vectorielle (`services/vector_db.py`)** : Utilise **FAISS** (de Facebook AI) avec un index `IndexFlatL2` pour stocker les vecteurs et effectuer des recherches de similarité très rapides.
 - **Stockage de Métadonnées (`services/storage.py`)** : Utilise **SQLite** pour sauvegarder les informations textuelles des candidats (compétences, expérience, etc.).
 
 ## 3. Fonctionnalités Principales
 
 - **API RESTful** complète pour la gestion des candidats et des offres.
-- **Matching Sémantique** basé sur le modèle de langage `all-MiniLM-L6-v2`.
+- **Matching Sémantique** basé sur le modèle de langage `paraphrase-multilingual-MiniLM-L12-v2`.
 - **Recherche de Similarité** haute performance avec FAISS.
 - **Persistance de l'Index Vectoriel** : L'index Faiss et les mappings d'ID sont sauvegardés sur le disque (`faiss.index`, `mappings.json`) pour survivre aux redémarrages du serveur.
 - **Score de Matching Composite** : Combine la pertinence sémantique (70%) et la correspondance des compétences (30%).
@@ -60,15 +60,27 @@ Le projet est actuellement configuré pour fonctionner de manière **synchrone**
 - **Body** (exemple) :
 ```json
 {
-    "id": "cand_001",
-    "nom": "Alice Martin",
-    "email": "alice.martin@example.com",
-    "education": "Master en Intelligence Artificielle",
-    "experience_pro": ["Data Scientist chez TechCorp pendant 4 ans", "Stage de 6 mois en machine learning"],
-    "certifications": ["Certification TensorFlow Developer"],
-    "competences": ["Python", "PyTorch", "Scikit-learn", "SQL", "Analyse de données"],
-    "langues": ["Français", "Anglais"],
-    "niveau_etudes": "Master"
+  "id": 1,
+  "profession": "Développeur.euse Full stack",
+  "user": "http://wib-challenge-dev-backend-213-32-91-101.traefik.me/api/users/13/",
+  "technologies": [
+    {
+      "id": 1,
+      "name": "PHP",
+      "level": 50
+    }
+  ],
+  "createdAt": "2025-09-01T10:24:18.889648Z",
+  "updatedAt": "2025-09-01T10:24:18.889679Z",
+  "location": "Douala",
+  "shortBio": "je suis developpeur",
+  "biography": "je fais les applications",
+  "disability": false,
+  "openToWork": false,
+  "yearsExperience": 1,
+  "otherYearsExperience": 3,
+  "highestDegree": 2,
+  "interestedBy": "nouvelle technologie"
 }
 ```
 

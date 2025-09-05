@@ -1,16 +1,28 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime
+
+class Technology(BaseModel):
+    id: int
+    name: str
+    level: int
 
 class Candidate(BaseModel):
-    id: str
-    nom: str
-    email: str
-    education: str
-    experience_pro: List[str]
-    certifications: List[str]
-    competences: List[str]
-    langues: List[str]
-    niveau_etudes: str
+    id: int
+    profession: str
+    user: str
+    technologies: List[Technology]
+    createdAt: datetime
+    updatedAt: datetime
+    location: str
+    shortBio: str
+    biography: str
+    disability: bool
+    openToWork: bool
+    yearsExperience: int
+    otherYearsExperience: int
+    highestDegree: int
+    interestedBy: str
 
 class Job(BaseModel):
     description: str
