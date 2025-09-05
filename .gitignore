@@ -1,0 +1,21 @@
+# Environnement virtuel
+venv/
+
+# Fichiers de cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Fichiers de base de données et d'index
+*.db
+*.sqlite3
+faiss.index
+mappings.json
+
+# Fichiers de configuration d'IDE
+.vscode/
+.idea/
+
+# Fichiers d'environnement
+.env
