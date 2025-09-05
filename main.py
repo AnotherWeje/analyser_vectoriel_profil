@@ -3,20 +3,19 @@ from models.candidate import Candidate, Job
 from services.nlp_service import NLPService
 from services.vector_db import VectorDB
 from services.storage import Storage
+from tasks.process_candidate import process_candidate_task
 
 app = FastAPI()
 nlp_service = NLPService()
-vector_db = VectorDB()
 storage = Storage()
 
 @app.post("/candidates")
 async def add_candidate(candidate: Candidate):
-    from tasks.process_candidate import process_candidate_task
     # Lancer tâche asynchrone pour traitement lourd
-    # task = process_candidate_task.delay(candidate.dict())
-    # return {"status": "Profil en cours de traitement", "task_id": task.id}
-    task = process_candidate_task(candidate.dict())
-    return {"status": "Profil en cours de traitement", "task_id": task}
+    task = process_candidate_task.delay(candidate.dict())
+    return {"status": "Profil en cours de traitement", "task_id": task.id}
+    # task = process_candidate_task(candidate.dict())
+    # return {"status": "Profil en cours de traitement", "task_id": task}
 
 @app.post("/jobs")
 async def match_job(job: Job):
@@ -25,7 +24,8 @@ async def match_job(job: Job):
     job_embedding = nlp_service.generate_embedding(job_text)
     
     # Query vectorielle
-    matches = vector_db.query(job_embedding, top_k=100)
+    fresh_vector_db = VectorDB()
+    matches = fresh_vector_db.query(job_embedding, top_k=20)
     print(f"Found {len(matches)} matches")
     
     # Récupérer métadonnées pour scoring
@@ -46,9 +46,10 @@ async def get_vectordb_info():
     """
     Retourne des informations de débogage sur la base de données vectorielle.
     """
+    fresh_vector_db = VectorDB()
     return {
-        "num_vectors": vector_db.index.ntotal,  # type: ignore
-        "dimension": vector_db.dimension,
+        "num_vectors": fresh_vector_db.index.ntotal,
+        "dimension": fresh_vector_db.dimension,
     }
 
 
