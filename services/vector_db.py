@@ -62,6 +62,9 @@ class VectorDB:
         if embedding.ndim == 1:
             embedding = embedding.reshape(1, -1)
         
+        # Normaliser le vecteur pour que la distance L2 soit une mesure de similarité fiable.
+        faiss.normalize_L2(embedding)
+
         # Ajoute l'embedding à l'index FAISS. Notez que IndexFlatL2 ajoute simplement le vecteur
         # et ne gère pas les mises à jour ou suppressions directes par ID. Si un candidat est ajouté
         # plusieurs fois, il y aura des entrées multiples dans l'index.
@@ -82,23 +85,29 @@ class VectorDB:
         if embedding.ndim == 1:
             embedding = embedding.reshape(1, -1)
         
+        # Normaliser le vecteur de requête pour correspondre aux vecteurs normalisés de l'index.
+        faiss.normalize_L2(embedding)
+
         # Effectue la recherche de similarité dans l'index FAISS.
         # Retourne les distances (L2) et les indices des vecteurs les plus proches.
         distances, indices = self.index.search(embedding, top_k)  # type: ignore
         
-        # Convertit les distances L2 en une approximation de similarité cosinus.
-        # Une distance L2 plus petite indique une plus grande similarité, donc 1 - (distance / 2.0)
-        # permet de transformer cela en un score où 1 est le plus similaire et 0 le moins.
-        scores = 1 - (distances / 2.0)  # Normalisation approximative
+        # Convertit les distances L2 en une approximation de similarité cosinus sur une échelle de -1 à 1.
+        # Une distance L2 plus petite indique une plus grande similarité.
+        similarity_scores = 1 - (distances / 2.0)
 
         # Filtre les résultats pour ne retourner qu'une seule entrée par ID de candidat unique.
         # Si un candidat a plusieurs embeddings dans l'index (suite à des ajouts multiples),
         # seule la première occurrence (celle avec la meilleure distance/score) sera conservée.
         results = []
         seen_candidate_ids = set()
-        for idx, score in zip(indices[0], scores[0]):
+        for idx, sim_score in zip(indices[0], similarity_scores[0]):
             candidate_id = self.index_to_id.get(idx, None)
             if candidate_id and candidate_id not in seen_candidate_ids:
-                results.append((candidate_id, float(score)))
+                # Transformation du score de similarité [-1, 1] vers une échelle intuitive [0, 10].
+                # Un score de 1 (similarité max) devient 10.
+                # Un score de -1 (similarité min) devient 0.
+                intuitive_score = (sim_score + 1) * 5
+                results.append((candidate_id, float(intuitive_score)))
                 seen_candidate_ids.add(candidate_id)
         return results
