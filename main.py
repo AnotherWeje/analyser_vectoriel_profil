@@ -29,7 +29,7 @@ async def match_job(job: Job):
     fresh_vector_db = VectorDB()
     # Effectue une recherche de similarité vectorielle pour trouver les candidats les plus pertinents.
     # top_k définit le nombre maximum de résultats à retourner.
-    matches = fresh_vector_db.query(job_embedding, top_k=20)
+    matches = fresh_vector_db.query(job_embedding, top_k=10)
     print(f"Found {len(matches)} matches")
     
     # Traite les résultats de la recherche vectorielle et calcule un score composite.

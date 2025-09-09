@@ -12,6 +12,7 @@ __pycache__/
 *.sqlite3
 faiss.index
 mappings.json
+dump.rdb
 
 # Fichiers de configuration d'IDE
 .vscode/
