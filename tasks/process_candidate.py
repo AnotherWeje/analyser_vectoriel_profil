@@ -1,32 +1,42 @@
 from celery import Celery
 from services.nlp_service import NLPService
-from services.storage import Storage
-from services.vector_db import VectorDB
-from models.candidate import Candidate # Import the Candidate model
+# MODIFICATION: Import new Pinecone functions and system utilities
+from services.vector_db import initialize_pinecone, save_vector
+from models.candidate import Candidate
+import sys
+import os
 
-app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
+# MODIFICATION: Use environment variables for broker and backend URLs for production readiness
+broker_url = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+backend_url = os.getenv('CELERY_BACKEND_URL', 'redis://localhost:6379/0')
+
+app = Celery('tasks', broker=broker_url, backend=backend_url)
 app.conf.task_serializer = 'json'
 app.conf.accept_content = ['json']
 app.conf.result_serializer = 'json'
 
 nlp_service = NLPService()
-vector_db = VectorDB()
-storage = Storage()
+
+# MODIFICATION: Initialize Pinecone once when the worker starts using a Celery signal
+@app.on_after_configure.connect  # type: ignore
+def setup_pinecone(sender, **kwargs):
+    """Initialize Pinecone connection when the Celery worker starts."""
+    try:
+        initialize_pinecone()
+    except Exception as e:
+        print(f"FATAL: Could not initialize Pinecone. Worker will exit. Error: {e}")
+        sys.exit(1) # Exit if DB connection fails
+
 
 @app.task
 def process_candidate_task(candidate_data: dict):
     """
     Tâche Celery pour traiter un profil de candidat.
     Cette tâche extrait les caractéristiques textuelles, génère un embedding vectoriel,
-    et stocke l'embedding dans la base de données vectorielle (FAISS) ainsi que les
-    métadonnées du candidat dans le stockage (SQLite).
+    et stocke l'embedding et les métadonnées dans la base de données vectorielle (Pinecone).
     """
-    # Convertit les données brutes du candidat (dictionnaire) en un objet Pydantic Candidate.
-    # Cela assure la validation des données et un accès structuré aux attributs du candidat.
     candidate = Candidate(**candidate_data)
 
-    # Prépare un texte unifié à partir des informations clés du profil du candidat.
-    # Ce texte sera utilisé pour l'extraction de caractéristiques NLP et la génération d'embeddings.
     technology_names = [tech.name for tech in candidate.technologies]
     profile_text = (
         f"{candidate.profession} "
@@ -37,34 +47,29 @@ def process_candidate_task(candidate_data: dict):
         f"{candidate.location}"
     ).lower()
 
-    # Extrait des caractéristiques (comme les compétences) du texte unifié du profil
-    # en utilisant le service NLP.
     features = nlp_service.extract_features(profile_text)
-    # Construit un dictionnaire de métadonnées à stocker avec l'embedding.
-    # Ces métadonnées sont utilisées pour le filtrage et le scoring post-recherche vectorielle.
+    
+    # MODIFICATION: Adapt metadata to be Pinecone-compatible (values must be string, number, bool, or list of strings)
     metadata = {
         "profession": candidate.profession,
-        "technologies": [{"name": tech.name, "level": tech.level} for tech in candidate.technologies],
+        "technologies": [f'{tech.name}:{tech.level}' for tech in candidate.technologies],
         "years_experience": candidate.yearsExperience,
         "highest_degree": candidate.highestDegree,
         "location": candidate.location,
         "disability": candidate.disability,
         "open_to_work": candidate.openToWork,
         "interested_by": candidate.interestedBy,
-        "extracted_skills": features["skills"] # Les compétences extraites par le NLP
+        "extracted_skills": features["skills"]
     }
 
-    # Génère l'embedding vectoriel du texte unifié du profil en utilisant le service NLP.
-    # Cet embedding est la représentation numérique du sens sémantique du profil.
     embedding = nlp_service.generate_embedding(profile_text)
     print("Embedding length:", len(embedding))
 
-    # Stocke l'embedding dans la base de données vectorielle (FAISS) et les métadonnées
-    # associées dans le stockage (SQLite). L'ID du candidat est utilisé comme clé.
-    vector_db.add(str(candidate.id), embedding)
-    storage.save_candidate(str(candidate.id), metadata)
+    # MODIFICATION: Replace old db calls with a single call to save_vector for Pinecone
+    vector_id = str(candidate.id)
+    save_vector(vector_id, embedding, metadata)
 
-    total_vectors = vector_db.index.ntotal
-    print(f"[INFO] Traitement terminé pour le candidat ID: {candidate.id}. L'index contient maintenant {total_vectors} vecteurs.")
+    # MODIFICATION: Update print statement for clarity
+    print(f"[INFO] Traitement terminé pour le candidat ID: {candidate.id}. Vecteur sauvegardé dans Pinecone.")
 
     return {"status": "completed", "candidate_id": candidate.id}

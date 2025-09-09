@@ -1,0 +1,20 @@
+# .dockerignore
+
+# Ignorer le dossier de l'environnement virtuel
+venv/
+
+# Ignorer les fichiers de cache Python
+__pycache__/
+*.pyc
+
+# Ignorer le dossier Git et les fichiers de configuration associés
+.git/
+.gitignore
+.gemini/
+
+# Ignorer le fichier .env (contient des secrets)
+.env
+
+
+# Ignorer les logs
+*.log

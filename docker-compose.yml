@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # Celery Broker (Redis est un choix simple et léger pour Docker Compose)
+  redis:
+    image: redis:7-alpine # Utilise une image Redis légère
+    ports:
+      - "6379:6379" # Expose le port Redis sur l'hôte
+    volumes:
+      - redis_data:/data # Volume persistant pour les données Redis
+    networks:
+      - app_network
+
+  # Application FastAPI
+  api:
+    build:
+      context: . # Le contexte de build est le répertoire courant
+      dockerfile: api.Dockerfile # Utilise le Dockerfile spécifique à l'API
+    ports:
+      - "8000:8000" # Mappe le port 8000 de l'hôte au port 8000 du conteneur
+    env_file:
+      - .env # Charge les variables d'environnement depuis le fichier .env
+    depends_on:
+      - redis # S'assure que Redis démarre avant l'API
+    networks:
+      - app_network
+
+  # Celery Worker
+  worker:
+    build:
+      context: . # Le contexte de build est le répertoire courant
+      dockerfile: worker.Dockerfile # Utilise le Dockerfile spécifique au worker
+    env_file:
+      - .env # Charge les variables d'environnement depuis le fichier .env
+    depends_on:
+      - redis # S'assure que Redis démarre avant le worker
+      - api # Dépend de l'API pour une cohérence logique (bien que pas strictement nécessaire pour le démarrage du worker)
+    networks:
+      - app_network
+
+volumes:
+  redis_data: # Définit le volume nommé pour la persistance des données Redis
+
+networks:
+  app_network: # Définit un réseau personnalisé pour une meilleure isolation et un nommage clair
+    driver: bridge

@@ -7,16 +7,10 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Fichiers de base de données et d'index
-*.db
-*.sqlite3
-faiss.index
-mappings.json
-dump.rdb
-
 # Fichiers de configuration d'IDE
 .vscode/
 .idea/
+.gemini/
 
 # Fichiers d'environnement
 .env
