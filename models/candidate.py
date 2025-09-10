@@ -25,6 +25,7 @@ class Candidate(BaseModel):
     interestedBy: str
 
 class Job(BaseModel):
+    id: str
     description: str
     required_skills: List[str]
     min_experience_years: Optional[int] = 0

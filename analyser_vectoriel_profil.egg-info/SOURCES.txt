@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+analyser_vectoriel_profil.egg-info/PKG-INFO
+analyser_vectoriel_profil.egg-info/SOURCES.txt
+analyser_vectoriel_profil.egg-info/dependency_links.txt
+analyser_vectoriel_profil.egg-info/top_level.txt
+api/__init__.py
+api/endpoints/__init__.py
+api/endpoints/matching.py
+api/endpoints/monitoring.py
+models/__init__.py
+models/candidate.py
+services/__init__.py
+services/nlp_service.py
+services/vector_db.py
+tasks/__init__.py
+tasks/process_candidate.py

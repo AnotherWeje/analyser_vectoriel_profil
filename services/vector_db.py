@@ -1,6 +1,10 @@
 # services/vector_db.py
 import os
+import logging
 from pinecone import Pinecone
+
+# Obtenir un logger pour ce module
+logger = logging.getLogger(__name__)
 
 # --- NOUVELLE APPROCHE D'INITIALISATION ---
 
@@ -20,17 +24,17 @@ def initialize_pinecone():
     """
     Vérifie que l'index existe dans Pinecone au démarrage.
     """
-    print("Connecting to Pinecone and verifying index...")
+    logger.info("Connexion à Pinecone et vérification de l'index...")
     try:
         index_list = pc.list_indexes().names()
         if index_name not in index_list:
-            print(f"WARNING: Index '{index_name}' does not exist. Please create it in the Pinecone console.")
+            logger.warning(f"L'index '{index_name}' n'existe pas. Veuillez le créer dans la console Pinecone.")
             # Vous pourriez vouloir lever une exception ici si l'index est absolument requis pour démarrer
             # raise ReferenceError(f"Pinecone index '{index_name}' not found.")
         else:
-            print(f"Pinecone index '{index_name}' found and ready.")
+            logger.info(f"L'index Pinecone '{index_name}' est trouvé et prêt.")
     except Exception as e:
-        print(f"FATAL: An error occurred while connecting to Pinecone: {e}")
+        logger.critical(f"FATAL: Une erreur est survenue lors de la connexion à Pinecone: {e}", exc_info=True)
         raise
 
 def save_vector(vector_id: str, vector_data: list[float], metadata: dict):
@@ -43,9 +47,9 @@ def save_vector(vector_id: str, vector_data: list[float], metadata: dict):
         index.upsert(
             vectors=[(vector_id, vector_data, metadata)]
         )
-        print(f"Successfully upserted vector {vector_id}")
+        logger.info(f"Vecteur {vector_id} sauvegardé avec succès dans Pinecone.")
     except Exception as e:
-        print(f"Error saving vector to Pinecone: {e}")
+        logger.error(f"Erreur lors de la sauvegarde du vecteur dans Pinecone: {e}", exc_info=True)
         raise
 
 def search_similar_vectors(query_vector: list[float], top_k: int = 5):
@@ -62,5 +66,5 @@ def search_similar_vectors(query_vector: list[float], top_k: int = 5):
         )
         return results.matches  # type: ignore
     except Exception as e:
-        print(f"Error searching in Pinecone: {e}")
+        logger.error(f"Erreur lors de la recherche dans Pinecone: {e}", exc_info=True)
         raise
