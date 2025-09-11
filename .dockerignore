@@ -13,7 +13,7 @@ __pycache__/
 .gemini/
 
 # Ignorer le fichier .env (contient des secrets)
-.env
+env
 
 
 # Ignorer les logs

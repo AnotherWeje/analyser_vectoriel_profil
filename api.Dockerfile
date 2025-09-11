@@ -19,4 +19,4 @@ EXPOSE 8000
 
 # Commande pour lancer le serveur Uvicorn
 # --host 0.0.0.0 est nécessaire pour que l'application soit accessible depuis l'extérieur du conteneur
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["dotenv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
