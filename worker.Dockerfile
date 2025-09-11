@@ -3,15 +3,14 @@
 # Utilise la même image Python que l'API
 FROM python:3.11-slim
 
+RUN apt update && apt install -y git curl
+
 # Définit le répertoire de travail
 WORKDIR /app
 
 # Copie les requirements et installe les dépendances
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Installe python-dotenv explicitement pour la commande dotenv run
-RUN pip install python-dotenv
 
 # Copie le reste du code de l'application
 COPY . .

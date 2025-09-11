@@ -3,6 +3,8 @@
 # Utilise une image Python légère basée sur la version 3.11
 FROM python:3.11-slim
 
+RUN apt update && apt install -y git curl
+
 # Définit le répertoire de travail dans le conteneur
 WORKDIR /app
 
