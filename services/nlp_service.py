@@ -13,7 +13,8 @@ class NLPService:
         self.nlp_en = spacy.load("en_core_web_sm")
         # Charger un modèle SentenceTransformer multilingue pour générer des embeddings (vecteurs numériques) de texte.
         # Ce modèle est optimisé pour la similarité sémantique entre phrases.
-        self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        # Forcer l'utilisation du CPU pour éviter toute dépendance CUDA
+        self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device='cpu')
         logging.info("Modèles NLP chargés.")
 
     def extract_features(self, text: str) -> dict:
