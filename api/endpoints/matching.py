@@ -18,11 +18,11 @@ async def add_candidate(candidate: Candidate):
 
 @router.post("/match", tags=["Matching"])
 async def match_job(job: Job):
-    # Normaliser le texte pour l'embedding (cohérent avec le profil candidat en minuscules)
+    # Normaliser le texte pour l'embedding (cohérent avec le profil candidat)
     job_text = f"{job.description} {' '.join(job.required_skills)}".lower()
     job_embedding = list(nlp_service.generate_embedding(job_text))
     logger.info(f"Recherche de correspondances pour l'offre d'emploi ID: {job.id}")
-    matches = search_similar_vectors(job_embedding, top_k=10)
+    matches = search_similar_vectors(job_embedding, top_k=20)
     logger.info(f"Trouvé {len(matches)} correspondances depuis Pinecone.")
     results = []
     for match in matches:
