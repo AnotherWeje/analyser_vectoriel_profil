@@ -1,98 +1,3 @@
-# import os
-# import socket
-# import sys
-# from celery import Celery
-# from celery.signals import after_setup_logger
-# from dotenv import load_dotenv
-# import logging
-
-# from logging_config import HumanReadableFormatter
-# from services.nlp_service import NLPService
-# from services.vector_db import initialize_pinecone, save_vector
-# from models.candidate import Candidate
-
-# # --- Configuration initiale ---
-# load_dotenv()
-# logger = logging.getLogger(__name__)
-
-# # --- Récupération de l'URL Redis complète depuis l'environnement ---
-# # Utilisation directe de REDIS_URL, comme indiqué par l'utilisateur
-# redis_url_final = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-
-# # --- Création de l'application Celery ---
-# # On utilise la même URL pour le broker et le backend pour plus de simplicité
-# app = Celery('tasks', broker=redis_url_final, backend=redis_url_final)
-
-# # --- Configuration de l'application Celery ---
-# app.conf.task_serializer = 'json'
-# app.conf.accept_content = ['json']
-# app.conf.result_serializer = 'json'
-
-# # Options de transport pour la stabilité (Keepalives)
-# app.conf.broker_transport_options = {
-#     'visibility_timeout': 3600,
-#     'socket_keepalive': True,
-#     'socket_keepalive_options': {
-#         socket.TCP_KEEPIDLE: 60,
-#         socket.TCP_KEEPINTVL: 30,
-#         socket.TCP_KEEPCNT: 3
-#     },
-#     'broker_connection_retry_on_startup': True
-# }
-
-# nlp_service = NLPService()
-
-# # --- Configuration des Logs de Celery ---
-# @after_setup_logger.connect
-# def setup_celery_logging(logger, **kwargs):
-#     if os.getenv('LOG_FORMAT', 'json').lower() == 'human':
-#         for handler in logger.handlers:
-#             handler.setFormatter(HumanReadableFormatter())
-#         noisy_loggers = ['kombu', 'billiard', 'redis', 'urllib3', 'celery.worker.consumer']
-#         for logger_name in noisy_loggers:
-#             logging.getLogger(logger_name).setLevel(logging.WARNING)
-
-# # --- Tâches Celery ---
-# @app.on_after_configure.connect # type: ignore
-# def setup_pinecone(sender, **kwargs):
-#     try:
-#         initialize_pinecone()
-#     except Exception as e:
-#         logger.critical(f"FATAL: Impossible d'initialiser Pinecone. Le worker va s'arrêter. Erreur: {e}", exc_info=True)
-#         sys.exit(1)
-
-# @app.task
-# def process_candidate_task(candidate_data: dict):
-#     candidate = Candidate(**candidate_data)
-#     logger.info(f"Début du traitement pour le candidat ID: {candidate.id}")
-#     technology_names = [tech.name for tech in candidate.technologies]
-#     profile_text = (
-#         f"{candidate.profession} "
-#         f"{candidate.shortBio} "
-#         f"{candidate.biography} "
-#         f"{candidate.interestedBy} "
-#         f"{' '.join(technology_names)} "
-#         f"{candidate.location}"
-#     ).lower()
-#     features = nlp_service.extract_features(profile_text)
-#     metadata = {
-#         "profession": candidate.profession,
-#         "technologies": [f'{tech.name}:{tech.level}' for tech in candidate.technologies],
-#         "years_experience": candidate.yearsExperience,
-#         "highest_degree": candidate.highestDegree,
-#         "location": candidate.location,
-#         "disability": candidate.disability,
-#         "open_to_work": candidate.openToWork,
-#         "interested_by": candidate.interestedBy,
-#         "extracted_skills": features["skills"]
-#     }
-#     embedding = nlp_service.generate_embedding(profile_text)
-#     vector_id = str(candidate.id)
-#     save_vector(vector_id, embedding, metadata)
-#     logger.info(f"Traitement terminé pour le candidat ID: {candidate.id}. Vecteur sauvegardé dans Pinecone.")
-#     return {"status": "completed", "candidate_id": candidate.id}
-
-
 import os
 import socket
 import sys
@@ -214,7 +119,8 @@ def process_candidate_task(candidate_data: dict):
     features = nlp_service.extract_features(profile_text)
     metadata = {
         "profession": candidate.profession,
-        "technologies": [f'{tech.name}:{tech.level}' for tech in candidate.technologies],
+        # Stocker les technologies en minuscules et sans espaces superflus pour la cohérence
+        "technologies": [f"{tech.name.strip().lower()}:{tech.level}" for tech in candidate.technologies],
         "years_experience": candidate.yearsExperience,
         "highest_degree": candidate.highestDegree,
         "location": candidate.location,

@@ -18,7 +18,8 @@ async def add_candidate(candidate: Candidate):
 
 @router.post("/match", tags=["Matching"])
 async def match_job(job: Job):
-    job_text = f"{job.description} {' '.join(job.required_skills)}"
+    # Normaliser le texte pour l'embedding (cohérent avec le profil candidat en minuscules)
+    job_text = f"{job.description} {' '.join(job.required_skills)}".lower()
     job_embedding = list(nlp_service.generate_embedding(job_text))
     logger.info(f"Recherche de correspondances pour l'offre d'emploi ID: {job.id}")
     matches = search_similar_vectors(job_embedding, top_k=10)
@@ -29,8 +30,13 @@ async def match_job(job: Job):
         if metadata:
             candidate_id = match.id
             similarity_score = match.score
+            # Normaliser les compétences pour une comparaison insensible à la casse et aux espaces
+            job_skills_norm = {s.strip().lower() for s in (job.required_skills or [])}
             candidate_skills = [tech.split(':')[0] for tech in metadata.get("technologies", [])]
-            skill_match_score = len(set(job.required_skills) & set(candidate_skills)) / len(job.required_skills) if job.required_skills else 0
+            candidate_skills_norm = {s.strip().lower() for s in candidate_skills}
+            skill_match_score = (
+                len(job_skills_norm & candidate_skills_norm) / len(job_skills_norm)
+            ) if job_skills_norm else 0
             final_score = 0.7 * similarity_score + 0.3 * skill_match_score
             results.append({
                 "candidate_id": candidate_id, 

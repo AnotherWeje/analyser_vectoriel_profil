@@ -52,7 +52,7 @@ def save_vector(vector_id: str, vector_data: list[float], metadata: dict):
         logger.error(f"Erreur lors de la sauvegarde du vecteur dans Pinecone: {e}", exc_info=True)
         raise
 
-def search_similar_vectors(query_vector: list[float], top_k: int = 5):
+def search_similar_vectors(query_vector: list[float], top_k: int = 20):
     """
     Recherche les vecteurs les plus similaires dans Pinecone.
     """
@@ -67,4 +67,30 @@ def search_similar_vectors(query_vector: list[float], top_k: int = 5):
         return results.matches  # type: ignore
     except Exception as e:
         logger.error(f"Erreur lors de la recherche dans Pinecone: {e}", exc_info=True)
+        raise
+
+def fetch_metadata(ids: list[str]) -> dict[str, dict]:
+    """
+    Récupère les métadonnées pour une liste d'IDs.
+    Retourne un dict {id: metadata} pour les IDs trouvés.
+    """
+    try:
+        index = pc.Index(str(index_name))
+        resp = index.fetch(ids=ids)
+        vectors = getattr(resp, "vectors", {}) or {}
+        return {vid: (v.get("metadata") or {}) for vid, v in vectors.items()}
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des métadonnées: {e}", exc_info=True)
+        raise
+
+def update_metadata(vector_id: str, metadata: dict) -> None:
+    """
+    Met à jour uniquement les métadonnées d'un vecteur existant.
+    """
+    try:
+        index = pc.Index(str(index_name))
+        index.update(id=vector_id, set_metadata=metadata)
+        logger.info(f"Métadonnées mises à jour pour le vecteur {vector_id}.")
+    except Exception as e:
+        logger.error(f"Erreur lors de la mise à jour des métadonnées pour {vector_id}: {e}", exc_info=True)
         raise
