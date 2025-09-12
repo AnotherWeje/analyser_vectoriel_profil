@@ -2,19 +2,32 @@ import os
 import logging
 import ssl
 import redis
+import statistics
 from urllib.parse import urlparse, parse_qs, urlunparse
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, status
 from celery.result import AsyncResult
 from pydantic import BaseModel
+from typing import Optional
 
 from services.vector_db import pc, index_name, fetch_metadata, update_metadata
+from services.vector_db import search_similar_vectors
+from services.nlp_service import NLPService
+from models.candidate import Job
 
 logger = logging.getLogger(__name__)
 
 # Charger les variables d'environnement depuis .env en local (utile hors Docker Compose)
 load_dotenv()
 router = APIRouter()
+
+# Service NLP local à ce module et seuil configurable
+nlp_service = NLPService()
+try:
+    MIN_MATCH_SCORE = float(os.getenv("MIN_MATCH_SCORE", "0.60"))
+except ValueError:
+    MIN_MATCH_SCORE = 0.60
+    logger.warning("MIN_MATCH_SCORE invalide dans l'environnement (monitoring). Valeur par défaut 0.60 utilisée.")
 
 def configure_redis_url(redis_url: str) -> str:
     """Normalise l'URL Redis. Pour rediss://, on NE modifie PAS ssl_cert_reqs dans l'URL
@@ -205,6 +218,8 @@ def normalize_all(req: NormalizeAllRequest):
                 return f"{name}:{level}" if level != "" else name
 
             normalized = [norm_one(t) for t in techs]
+
+            # Prévisualisation des changements
             if normalized != techs:
                 preview_total[vid] = {"before": techs, "after": normalized}
                 if not req.dry_run:
@@ -221,4 +236,76 @@ def normalize_all(req: NormalizeAllRequest):
         "updated": updated_total,
         "skipped": skipped_total,
         "preview": preview_total,
+    }
+
+@router.post("/monitoring/score_preview", tags=["Monitoring"])
+def score_preview(job: Job, top_k: int = 50, threshold: Optional[float] = None, return_top: int = 10):
+    """
+    Calcule la distribution des scores pour une offre donnée et retourne les top résultats.
+    - Utilise le même calcul de score que l'endpoint /match (0.7 * similarité + 0.3 * skills).
+    - Permet de surcharger le seuil via query param `threshold`, sinon utilise MIN_MATCH_SCORE.
+    """
+    thr = float(threshold) if threshold is not None else float(MIN_MATCH_SCORE)
+    # Embedding du job (cohérent avec matching.py)
+    job_text = f"{job.description} {' '.join(job.required_skills)}".lower()
+    job_embedding = list(nlp_service.generate_embedding(job_text))
+    logger.info(
+        "Score preview: job_id=%s top_k=%d threshold=%.2f return_top=%d",
+        getattr(job, 'id', None), top_k, thr, return_top
+    )
+    matches = search_similar_vectors(job_embedding, top_k=top_k)
+    logger.info("Score preview: %d correspondances brutes retournées par Pinecone", len(matches))
+
+    scores: list[float] = []
+    items: list[dict] = []
+
+    # Normaliser les compétences requises
+    job_skills_norm = {s.strip().lower() for s in (job.required_skills or [])}
+
+    for match in matches:
+        metadata = match.metadata
+        if not metadata:
+            continue
+        candidate_id = match.id
+        similarity_score = match.score
+        candidate_skills = [str(tech).split(':')[0] for tech in metadata.get("technologies", [])]
+        candidate_skills_norm = {s.strip().lower() for s in candidate_skills}
+        skill_match_score = (
+            len(job_skills_norm & candidate_skills_norm) / len(job_skills_norm)
+        ) if job_skills_norm else 0.0
+        final_score = 0.7 * float(similarity_score) + 0.3 * float(skill_match_score)
+        scores.append(final_score)
+        items.append({
+            "candidate_id": candidate_id,
+            "score": round(final_score, 3),
+            "breakdown": {
+                "similarity": round(float(similarity_score), 3),
+                "skill_match": round(float(skill_match_score), 3)
+            },
+            "metadata": {
+                "profession": metadata.get("profession"),
+                "location": metadata.get("location"),
+                "years_experience": metadata.get("years_experience"),
+            }
+        })
+
+    items.sort(key=lambda x: x["score"], reverse=True)
+    count_total = len(scores)
+    count_above = sum(1 for s in scores if s >= thr)
+
+    if scores:
+        stats = {
+            "min": round(min(scores), 3),
+            "max": round(max(scores), 3),
+            "mean": round(statistics.mean(scores), 3),
+            "median": round(statistics.median(scores), 3),
+        }
+    else:
+        stats = {"min": None, "max": None, "mean": None, "median": None}
+
+    return {
+        "params": {"top_k": top_k, "threshold_used": thr, "return_top": return_top},
+        "counts": {"total": count_total, "above_threshold": count_above},
+        "stats": stats,
+        "top": items[: max(0, int(return_top))],
     }

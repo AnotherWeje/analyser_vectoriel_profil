@@ -1,4 +1,5 @@
 import logging
+import os
 from fastapi import APIRouter
 
 from models.candidate import Candidate, Job
@@ -9,6 +10,13 @@ from tasks.process_candidate import process_candidate_task
 logger = logging.getLogger(__name__)
 router = APIRouter()
 nlp_service = NLPService()
+
+# Seuil minimal configurable pour considérer qu'un match est acceptable
+try:
+    MIN_MATCH_SCORE = float(os.getenv("MIN_MATCH_SCORE", "0.50"))
+except ValueError:
+    MIN_MATCH_SCORE = 0.50
+    logger.warning("MIN_MATCH_SCORE invalide dans l'environnement. Valeur par défaut 0.50 utilisée.")
 
 @router.post("/candidates", tags=["Candidates"])
 async def add_candidate(candidate: Candidate):
@@ -38,10 +46,21 @@ async def match_job(job: Job):
                 len(job_skills_norm & candidate_skills_norm) / len(job_skills_norm)
             ) if job_skills_norm else 0
             final_score = 0.7 * similarity_score + 0.3 * skill_match_score
-            results.append({
-                "candidate_id": candidate_id, 
-                "score": round(final_score, 2), 
-                "breakdown": {"similarity": round(similarity_score, 2), "skill_match": round(skill_match_score, 2)}
-            })
+            # Filtrer selon le seuil minimal
+            if final_score >= MIN_MATCH_SCORE:
+                results.append({
+                    "candidate_id": candidate_id,
+                    "score": round(final_score, 2),
+                    "breakdown": {
+                        "similarity": round(similarity_score, 2),
+                        "skill_match": round(skill_match_score, 2)
+                    }
+                })
+            else:
+                logger.debug(
+                    "Candidat %s filtré: score final %.3f < seuil %.2f (sim=%.3f, skills=%.3f)",
+                    candidate_id, final_score, MIN_MATCH_SCORE, similarity_score, skill_match_score
+                )
     results.sort(key=lambda x: x['score'], reverse=True)
+    logger.info("Nombre de matches après filtrage (seuil %.2f): %d", MIN_MATCH_SCORE, len(results))
     return results
