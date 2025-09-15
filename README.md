@@ -138,3 +138,48 @@ Le serveur FastAPI sera accessible à l'adresse `http://127.0.0.1:8000`.
       "namespaces": {}
     }
     ```
+
+## 7. Analyse de CV PDF → Candidat (utilitaire)
+
+Un utilitaire est fourni dans `analyse_de_cv_pdf/` pour extraire les informations d'un CV PDF et produire un JSON conforme au modèle `models.candidate.Candidate` consommé par l'API.
+
+### Installation requise
+- Dépendance ajoutée: `PyPDF2` (déjà référencée dans `requirements.txt`).
+
+### Utilisation en CLI
+```bash
+# Afficher le JSON du candidat dans le terminal
+python -m analyse_de_cv_pdf.cli extract path/to/cv.pdf
+
+# Forcer quelques attributs au besoin
+python -m analyse_de_cv_pdf.cli extract path/to/cv.pdf \
+  --user-hint email@example.com \
+  --open-to-work \
+  --out candidate.json
+```
+
+### Champs produits (rappel)
+- `id: int` (dérivé de l'email si non fourni, hash stable)
+- `profession: str` (heuristique à partir des mots clés/titres)
+- `user: str` (email détecté ou `unknown@example.com`)
+- `technologies: List[{id, name, level}]` (détection par catalogue minimal, niveaux heuristiques 1..5)
+- `createdAt`, `updatedAt`: ISO 8601 (UTC)
+- `location: str` (détection heuristique)
+- `shortBio: str` (extrait court du haut du document)
+- `biography: str` (texte du CV, tronqué à 20k chars)
+- `disability: bool`, `openToWork: bool` (par défaut False, modifiables en CLI)
+- `yearsExperience: int` (heuristique à partir des mentions d'années)
+- `otherYearsExperience: int` (0 par défaut)
+- `highestDegree: int` (0=Non précisé, 1=Bachelor/Licence, 2=Master, 3=Doctorat)
+- `interestedBy: str` (si détecté)
+
+### Intégration avec l'API `/candidates`
+Vous pouvez chaîner la sortie JSON directement vers l'API pour déclencher le traitement asynchrone:
+```bash
+python -m analyse_de_cv_pdf.cli extract path/to/cv.pdf \
+| http --json POST http://127.0.0.1:8000/candidates
+```
+
+Notes:
+- La détection des compétences s'appuie sur `analyse_de_cv_pdf/skills_catalog.py` (catalogue minimal à enrichir selon vos besoins).
+- L'extraction de texte dépend de la qualité du PDF (PDF natif vs scans). Pour les scans, un OCR (ex: Tesseract) serait nécessaire et n'est pas inclus ici.

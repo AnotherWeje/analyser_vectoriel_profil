@@ -52,18 +52,21 @@ def save_vector(vector_id: str, vector_data: list[float], metadata: dict):
         logger.error(f"Erreur lors de la sauvegarde du vecteur dans Pinecone: {e}", exc_info=True)
         raise
 
-def search_similar_vectors(query_vector: list[float], top_k: int = 20):
+def search_similar_vectors(query_vector: list[float], top_k: int = 20, metadata_filter: dict | None = None):
     """
     Recherche les vecteurs les plus similaires dans Pinecone.
     """
     try:
         # Obtenir une référence à l'index via l'instance pc
         index = pc.Index(str(index_name))
-        results = index.query(
-            vector=query_vector,
-            top_k=top_k,
-            include_metadata=True
-        )
+        kwargs = {
+            "vector": query_vector,
+            "top_k": top_k,
+            "include_metadata": True,
+        }
+        if metadata_filter:
+            kwargs["filter"] = metadata_filter
+        results = index.query(**kwargs)
         return results.matches  # type: ignore
     except Exception as e:
         logger.error(f"Erreur lors de la recherche dans Pinecone: {e}", exc_info=True)

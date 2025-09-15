@@ -107,14 +107,21 @@ def process_candidate_task(candidate_data: dict):
     logger.info(f"Début du traitement pour le candidat ID: {candidate.id}")
     
     technology_names = [tech.name for tech in candidate.technologies]
-    profile_text = (
-        f"{candidate.profession} "
-        f"{candidate.shortBio} "
-        f"{candidate.biography} "
-        f"{candidate.interestedBy} "
-        f"{' '.join(technology_names)} "
-        f"{candidate.location}"
-    ).lower()
+    # Texte du profil structuré avec sections explicites pour de meilleurs embeddings
+    profile_text_structured = (
+        f"Profession: {candidate.profession}\n"
+        f"Résumé court: {candidate.shortBio}\n"
+        f"Biographie: {candidate.biography}\n"
+        f"Intérêts: {candidate.interestedBy}\n"
+        f"Technologies: {', '.join(technology_names)}\n"
+        f"Localisation: {candidate.location}\n"
+        f"Années d'expérience: {candidate.yearsExperience}\n"
+        f"Diplôme le plus élevé: {candidate.highestDegree}\n"
+        f"Ouvert aux opportunités: {candidate.openToWork}\n"
+        f"Situation de handicap: {candidate.disability}"
+    )
+    # Normaliser en minuscules pour cohérence avec la recherche
+    profile_text = profile_text_structured.lower()
     
     features = nlp_service.extract_features(profile_text)
     metadata = {

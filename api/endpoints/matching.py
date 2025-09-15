@@ -27,10 +27,27 @@ async def add_candidate(candidate: Candidate):
 @router.post("/match", tags=["Matching"])
 async def match_job(job: Job):
     # Normaliser le texte pour l'embedding (cohérent avec le profil candidat)
-    job_text = f"{job.description} {' '.join(job.required_skills)}".lower()
+    parts = [
+        f"Description du poste: {job.description}",
+        f"Compétences requises: {', '.join(job.required_skills or [])}",
+        f"Années d'expérience minimales: {getattr(job, 'min_experience_years', 0) or 0}",
+    ]
+    title = getattr(job, 'title', None)
+    if title:
+        parts.insert(0, f"Titre: {title}")
+    location = getattr(job, 'location', None)
+    if location:
+        parts.append(f"Localisation: {location}")
+    job_text_structured = "\n".join(parts)
+    job_text = job_text_structured.lower()
     job_embedding = list(nlp_service.generate_embedding(job_text))
     logger.info(f"Recherche de correspondances pour l'offre d'emploi ID: {job.id}")
-    matches = search_similar_vectors(job_embedding, top_k=20)
+    # Construire un filtre Pinecone pour réduire le bruit
+    metadata_filter = {"open_to_work": True}
+    min_years = getattr(job, 'min_experience_years', 0) or 0
+    if isinstance(min_years, (int, float)) and min_years > 0:
+        metadata_filter["years_experience"] = {"$gte": int(min_years)}
+    matches = search_similar_vectors(job_embedding, top_k=20, metadata_filter=metadata_filter)
     logger.info(f"Trouvé {len(matches)} correspondances depuis Pinecone.")
     results = []
     for match in matches:
