@@ -1,3 +1,22 @@
+# docker-compose.yml
+#
+# Configuration Docker Compose pour le moteur de matching sémantique
+#
+# Architecture microservices :
+# - api : Serveur FastAPI exposant les endpoints REST
+# - worker : Worker Celery pour le traitement asynchrone des candidats
+# - consumer : Consumer Redis Streams qui écoute les événements et les transmet au worker
+#
+# Services externes requis (non inclus ici) :
+# - Redis : Broker pour Celery et streams de messages
+# - Pinecone : Base de données vectorielle pour les embeddings
+#
+# Variables d'environnement (.env) :
+# - REDIS_URL : URL de connexion à Redis
+# - PINECONE_API_KEY : Clé API Pinecone
+# - PINECONE_ENVIRONMENT : Environnement/index Pinecone
+# - LOG_LEVEL : Niveau de logging (INFO, DEBUG, etc.)
+
 services:
   # Application FastAPI
   api:
@@ -7,7 +26,7 @@ services:
     ports:
       - "8000:8000" # Mappe le port 8000 de l'hôte au port 8000 du conteneur
     env_file:
-      - .env # Charge les variables d'environnement depuis le fichier .env (contient REDIS_URL pour Upstash)
+      - .env # Charge les variables d'environnement depuis le fichier .env (contient REDIS_URL )
     networks:
       - app_network
 
@@ -17,9 +36,22 @@ services:
       context: . # Le contexte de build est le répertoire courant
       dockerfile: worker.Dockerfile # Utilise le Dockerfile spécifique au worker
     env_file:
-      - .env # Charge les variables d'environnement depuis le fichier .env (contient REDIS_URL pour Upstash)
+      - .env # Charge les variables d'environnement depuis le fichier .env (contient REDIS_URL)
     depends_on:
       - api # Dépend de l'API pour une cohérence logique
+    networks:
+      - app_network
+
+  # Stream Consumer (Redis Streams -> Celery)
+  consumer:
+    build:
+      context: . # Réutilise le même contexte de build
+      dockerfile: consumer.Dockerfile # Dockerfile dédié au consumer
+    env_file:
+      - .env # Charge REDIS_URL, LOG_LEVEL, etc.
+    depends_on:
+      - worker # S'assurer que le worker est disponible pour consommer les tâches
+    restart: unless-stopped
     networks:
       - app_network
 

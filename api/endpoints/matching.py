@@ -14,9 +14,10 @@ nlp_service = NLPService()
 # Seuil minimal configurable pour considérer qu'un match est acceptable
 try:
     MIN_MATCH_SCORE = float(os.getenv("MIN_MATCH_SCORE", "0.50"))
+    logger.warning("MIN_MATCH_SCORE valide dans l'environnement. Valeur par défaut 0 utilisée.")
 except ValueError:
     MIN_MATCH_SCORE = 0.50
-    logger.warning("MIN_MATCH_SCORE invalide dans l'environnement. Valeur par défaut 0.50 utilisée.")
+    logger.warning("MIN_MATCH_SCORE invalide dans l'environnement. Valeur par défaut 00 utilisée.")
 
 @router.post("/candidates", tags=["Candidates"])
 async def add_candidate(candidate: Candidate):
@@ -26,27 +27,26 @@ async def add_candidate(candidate: Candidate):
 
 @router.post("/match", tags=["Matching"])
 async def match_job(job: Job):
-    # Normaliser le texte pour l'embedding (cohérent avec le profil candidat)
+    # Normaliser le texte pour l'embedding selon le nouveau schéma Job
     parts = [
+        f"Titre: {job.title}",
         f"Description du poste: {job.description}",
-        f"Compétences requises: {', '.join(job.required_skills or [])}",
-        f"Années d'expérience minimales: {getattr(job, 'min_experience_years', 0) or 0}",
+        f"Responsabilités: {job.responsibilities}",
+        f"Exigences: {job.requirements}",
+        f"Avantages: {job.benefits}",
+        f"Type de poste: {job.jobType}",
+        f"Niveau d'expérience: {job.experienceLevel}",
+        f"Localisation: {job.location}",
+        f"Télétravail autorisé: {job.remoteAllowed}",
+        f"Mis en avant: {job.featured}",
+        f"Compétences: {', '.join(job.skills or [])}",
     ]
-    title = getattr(job, 'title', None)
-    if title:
-        parts.insert(0, f"Titre: {title}")
-    location = getattr(job, 'location', None)
-    if location:
-        parts.append(f"Localisation: {location}")
     job_text_structured = "\n".join(parts)
     job_text = job_text_structured.lower()
     job_embedding = list(nlp_service.generate_embedding(job_text))
-    logger.info(f"Recherche de correspondances pour l'offre d'emploi ID: {job.id}")
+    logger.info(f"Recherche de correspondances pour l'offre d'emploi: {job.title}")
     # Construire un filtre Pinecone pour réduire le bruit
     metadata_filter = {"open_to_work": True}
-    min_years = getattr(job, 'min_experience_years', 0) or 0
-    if isinstance(min_years, (int, float)) and min_years > 0:
-        metadata_filter["years_experience"] = {"$gte": int(min_years)}
     matches = search_similar_vectors(job_embedding, top_k=20, metadata_filter=metadata_filter)
     logger.info(f"Trouvé {len(matches)} correspondances depuis Pinecone.")
     results = []
@@ -56,7 +56,7 @@ async def match_job(job: Job):
             candidate_id = match.id
             similarity_score = match.score
             # Normaliser les compétences pour une comparaison insensible à la casse et aux espaces
-            job_skills_norm = {s.strip().lower() for s in (job.required_skills or [])}
+            job_skills_norm = {s.strip().lower() for s in (job.skills or [])}
             candidate_skills = [tech.split(':')[0] for tech in metadata.get("technologies", [])]
             candidate_skills_norm = {s.strip().lower() for s in candidate_skills}
             skill_match_score = (
@@ -80,4 +80,9 @@ async def match_job(job: Job):
                 )
     results.sort(key=lambda x: x['score'], reverse=True)
     logger.info("Nombre de matches après filtrage (seuil %.2f): %d", MIN_MATCH_SCORE, len(results))
-    return results
+    # Mapper vers le format demandé: rang (1-based), id, score final
+    formatted = [
+        {"rank": idx + 1, "candidate_id": item["candidate_id"], "score": item["score"]}
+        for idx, item in enumerate(results)
+    ]
+    return formatted

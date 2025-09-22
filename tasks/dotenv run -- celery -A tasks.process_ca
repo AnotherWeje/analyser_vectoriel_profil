@@ -1,0 +1,1 @@
+dotenv run -- celery -A tasks.process_candidate worker --loglevel=info

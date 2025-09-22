@@ -1,15 +1,38 @@
-import os
-import socket
-import sys
-from celery import Celery
-from celery.signals import after_setup_logger
-from dotenv import load_dotenv
-import logging
-from logging_config import HumanReadableFormatter
-from services.nlp_service import NLPService
-from services.vector_db import initialize_pinecone, save_vector
-from models.candidate import Candidate
-from urllib.parse import urlparse, parse_qs
+"""
+Tâches Celery pour le traitement asynchrone des profils de candidats.
+
+Ce module contient les tâches Celery qui sont exécutées par les workers
+pour analyser les profils de candidats et les stocker dans Pinecone.
+
+Fonctionnement :
+1. Réception des données du candidat depuis la queue Celery
+2. Extraction des features NLP (compétences, entités)
+3. Génération d'embeddings sémantiques avec SentenceTransformers
+4. Stockage des vecteurs et métadonnées dans Pinecone
+
+Configuration Redis :
+- Support SSL/TLS automatique pour les connexions sécurisées
+- Keepalives et timeouts pour la stabilité
+- Health checks automatiques
+
+Logging :
+- Format JSON pour la production
+- Format lisible par l'homme pour le développement
+- Filtrage des logs verbeux (kombu, redis, etc.)
+"""
+
+import os  # Accès aux variables d'environnement
+import socket  # Configuration des options de socket pour Redis
+import sys  # Accès aux fonctions système
+from celery import Celery  # Framework de tâches asynchrones
+from celery.signals import after_setup_logger  # Signal pour configurer le logging Celery
+from dotenv import load_dotenv  # Chargement des variables d'environnement
+import logging  # Configuration du système de logging
+from logging_config import HumanReadableFormatter  # Formateur de logs lisible
+from services.nlp_service import NLPService  # Service d'analyse NLP
+from services.vector_db import initialize_pinecone, save_vector  # Services Pinecone
+from models.candidate import Candidate  # Modèle de données pour les candidats
+from urllib.parse import urlparse, parse_qs  # Parsing des URLs Redis
 
 # --- Configuration initiale ---
 load_dotenv()
@@ -45,7 +68,7 @@ app.conf.task_serializer = 'json'
 app.conf.accept_content = ['json']
 app.conf.result_serializer = 'json'
 
-# Options de transport pour la stabilité (Keepalives) avec gestion SSL
+# Options de transport pour la stabilité (Keepalives, timeouts, health checks)
 broker_transport_options = {
     'visibility_timeout': 3600,
     'socket_keepalive': True,
@@ -54,7 +77,10 @@ broker_transport_options = {
         socket.TCP_KEEPINTVL: 30,
         socket.TCP_KEEPCNT: 3
     },
-    'broker_connection_retry_on_startup': True
+    # Timeouts et stratégies de retry côté broker
+    'socket_timeout': 10,
+    'retry_on_timeout': True,
+    'health_check_interval': 30,
 }
 
 # Ajouter les options SSL si l'URL utilise rediss://
@@ -69,15 +95,34 @@ if redis_url_final.startswith('rediss://'):
 
 app.conf.broker_transport_options = broker_transport_options
 
-# Même configuration pour le backend si nécessaire
+# Paramètres généraux de connexion broker (au bon niveau de conf)
+app.conf.broker_connection_retry_on_startup = True
+app.conf.broker_connection_max_retries = None  # retry indéfini
+app.conf.broker_heartbeat = 30
+
+# Configuration robuste pour le backend de résultats Redis (timeouts, keepalive, health checks)
+result_backend_transport_options = {
+    'socket_keepalive': True,
+    'socket_keepalive_options': {
+        socket.TCP_KEEPIDLE: 60,
+        socket.TCP_KEEPINTVL: 30,
+        socket.TCP_KEEPCNT: 3
+    },
+    'socket_timeout': 10,
+    'retry_on_timeout': True,
+    'health_check_interval': 30,
+}
+
 if redis_url_final.startswith('rediss://'):
-    app.conf.result_backend_transport_options = {
+    result_backend_transport_options.update({
         'ssl_cert_reqs': None,
         'ssl_check_hostname': False,
         'ssl_ca_certs': None,
         'ssl_certfile': None,
         'ssl_keyfile': None,
-    }
+    })
+
+app.conf.result_backend_transport_options = result_backend_transport_options
 
 nlp_service = NLPService()
 

@@ -24,10 +24,10 @@ router = APIRouter()
 # Service NLP local à ce module et seuil configurable
 nlp_service = NLPService()
 try:
-    MIN_MATCH_SCORE = float(os.getenv("MIN_MATCH_SCORE", "0.60"))
+    MIN_MATCH_SCORE = float(os.getenv("MIN_MATCH_SCORE", "0.50"))
 except ValueError:
-    MIN_MATCH_SCORE = 0.60
-    logger.warning("MIN_MATCH_SCORE invalide dans l'environnement (monitoring). Valeur par défaut 0.60 utilisée.")
+    MIN_MATCH_SCORE = 0.50
+    logger.warning("MIN_MATCH_SCORE invalide dans l'environnement (monitoring). Valeur par défaut 0.50 utilisée.")
 
 def configure_redis_url(redis_url: str) -> str:
     """Normalise l'URL Redis. Pour rediss://, on NE modifie PAS ssl_cert_reqs dans l'URL

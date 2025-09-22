@@ -1,0 +1,26 @@
+# requirements-consumer.txt
+#
+# Dépendances minimales pour le service Consumer Redis Streams
+#
+# Ce fichier contient UNIQUEMENT les packages nécessaires au fonctionnement
+# de services/stream_consumer.py, contrairement à requirements.txt qui
+# contient toutes les dépendances du projet (y compris les packages lourds
+# comme Torch, Spacy, etc.).
+#
+# Avantages :
+# - Conteneur plus léger et plus rapide à builder
+# - Installation plus rapide
+# - Empreinte mémoire réduite
+# - Pas de dépendances CUDA/Torch inutiles
+
+redis==5.0.1
+# Client Redis pour les opérations sur les streams
+# Utilisé pour écouter les messages et gérer la DLQ
+
+python-dotenv==1.1.1
+# Chargement des variables d'environnement depuis .env
+# Essentiel pour la configuration (REDIS_URL, LOG_LEVEL, etc.)
+
+celery==5.3.4
+# Framework de tâches asynchrones
+# Nécessaire pour l'appel à process_candidate_task.delay()

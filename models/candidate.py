@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 
 class Technology(BaseModel):
@@ -25,7 +25,14 @@ class Candidate(BaseModel):
     interestedBy: str
 
 class Job(BaseModel):
-    id: str
+    title: str
     description: str
-    required_skills: List[str]
-    min_experience_years: Optional[int] = 0
+    responsibilities: str
+    requirements: str
+    benefits: str
+    jobType: str
+    experienceLevel: str
+    location: str
+    remoteAllowed: bool
+    featured: bool
+    skills: List[str]
