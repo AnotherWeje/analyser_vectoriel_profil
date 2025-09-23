@@ -20,7 +20,6 @@ Logging :
 - Format lisible par l'homme pour le développement
 - Filtrage des logs verbeux (kombu, redis, etc.)
 """
-
 import os  # Accès aux variables d'environnement
 import socket  # Configuration des options de socket pour Redis
 import sys  # Accès aux fonctions système

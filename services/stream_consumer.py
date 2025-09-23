@@ -11,7 +11,9 @@ Architecture :
 - Reconnexion automatique en cas de perte de connexion
 - Backoff exponentiel pour éviter la surcharge
 """
-
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import logging  # Configuration du système de logging
 import os  # Accès aux variables d'environnement
 import time  # Fonctions de temporisation et sleep
@@ -49,6 +51,9 @@ def configure_redis_client() -> "redis.Redis[str]":
 def process_message(data: Dict[str, Any]) -> None:
     """Transmet l'événement à la tâche Celery de traitement candidat."""
     try:
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from tasks.process_candidate import process_candidate_task  # import local pour éviter coût au boot
         process_candidate_task.delay(data)
         logger.info("Task dispatched for candidate_id=%s", data.get("candidate_id"))

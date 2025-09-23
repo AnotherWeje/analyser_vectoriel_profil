@@ -12,8 +12,8 @@ class Candidate(BaseModel):
     profession: str
     user: str
     technologies: List[Technology]
-    createdAt: datetime
-    updatedAt: datetime
+    createdAt: str
+    updatedAt: str
     location: str
     shortBio: str
     biography: str
