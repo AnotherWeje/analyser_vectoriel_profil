@@ -22,12 +22,11 @@ WORKDIR /app
 
 # Copie le fichier requirements minimal et installe les dépendances
 # Utilise requirements-consumer.txt qui ne contient que les packages essentiels
-COPY requirements-consumer.txt .
-RUN pip install --no-cache-dir -r requirements-consumer.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copie le reste du code de l'application dans le conteneur
 COPY . .
 
 # Commande pour lancer le consumer Redis Streams
-# Utilise dotenv run pour charger les variables d'environnement du .env
-CMD ["dotenv", "run", "--", "python", "-m", "services.stream_consumer"]
+CMD ["python", "-m", "services.stream_consumer"]

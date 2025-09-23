@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose le port sur lequel l'application FastAPI écoute
-EXPOSE 8000
+EXPOSE 8001
 
 # Commande pour lancer le serveur Uvicorn
 # --host 0.0.0.0 est nécessaire pour que l'application soit accessible depuis l'extérieur du conteneur
