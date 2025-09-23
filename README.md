@@ -62,7 +62,7 @@ Créez un fichier `.env` à la racine du projet :
 ```dotenv
 # Configuration Pinecone
 PINECONE_API_KEY=votre_clé_api_pinecone
-PINECONE_ENVIRONMENT=votre_index_pinecone  # ex: us-west1-gcp
+PINECONE_INDEX_NAME=votre_index_pinecone  # ex: us-west1-gcp
 
 # Configuration Redis
 REDIS_URL=redis://localhost:6379/0  # Ou rediss:// pour SSL/TLS
@@ -96,7 +96,7 @@ docker compose up -d --build
 ```
 
 ### Services démarrés :
-- **api** : FastAPI sur `http://localhost:8000`
+- **api** : FastAPI sur `http://localhost:8001`
 - **worker** : Worker Celery pour le traitement asynchrone
 - **consumer** : Consumer Redis Streams pour l'ingestion temps réel
 
@@ -120,10 +120,10 @@ docker compose down
 
 ```bash
 # Vérifier que l'API répond
-curl http://localhost:8000/
+curl http://localhost:8001/
 
 # Vérifier la santé des services
-curl http://localhost:8000/monitoring/health
+curl http://localhost:8001/monitoring/health
 ```
 
 ## 6. Utilisation de l'API

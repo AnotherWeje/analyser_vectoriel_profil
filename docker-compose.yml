@@ -10,7 +10,7 @@
 # Variables d'environnement (.env) :
 # - REDIS_URL : URL de connexion à Redis (service externe requis)
 # - PINECONE_API_KEY : Clé API Pinecone
-# - PINECONE_ENVIRONMENT : Environnement/index Pinecone
+# - PINECONE_INDEX_NAME : Environnement/index Pinecone
 # - LOG_LEVEL : Niveau de logging (INFO, DEBUG, etc.)
 
 services:

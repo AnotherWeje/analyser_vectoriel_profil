@@ -14,10 +14,10 @@ nlp_service = NLPService()
 # Seuil minimal configurable pour considérer qu'un match est acceptable
 try:
     MIN_MATCH_SCORE = float(os.getenv("MIN_MATCH_SCORE", "0.50"))
-    logger.warning("MIN_MATCH_SCORE valide dans l'environnement. Valeur par défaut 0 utilisée.")
+    logger.info("MIN_MATCH_SCORE valide dans l'environnement.")
 except ValueError:
     MIN_MATCH_SCORE = 0.50
-    logger.warning("MIN_MATCH_SCORE invalide dans l'environnement. Valeur par défaut 00 utilisée.")
+    logger.warning("MIN_MATCH_SCORE invalide dans l'environnement. Valeur par défaut 0.50 utilisée.")
 
 @router.post("/candidates", tags=["Candidates"])
 async def add_candidate(candidate: Candidate):

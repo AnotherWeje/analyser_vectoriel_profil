@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 # 1. Récupérer la clé d'API depuis l'environnement
 api_key = os.getenv("PINECONE_API_KEY")
-index_name = os.getenv("PINECONE_ENVIRONMENT")
+index_name = os.getenv("PINECONE_INDEX_NAME")
 
 if not api_key or not index_name:
-    raise ValueError("PINECONE_API_KEY and PINECONE_ENVIRONMENT must be set in the environment")
+    raise ValueError("PINECONE_API_KEY and PINECONE_INDEX_NAME must be set in the environment")
 
 # 2. Créer une instance globale du client Pinecone
 pc = Pinecone(api_key=api_key, environment=index_name)
