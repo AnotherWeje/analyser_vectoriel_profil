@@ -6,10 +6,9 @@
 # - api : Serveur FastAPI exposant les endpoints REST
 # - worker : Worker Celery pour le traitement asynchrone des candidats
 # - consumer : Consumer Redis Streams qui écoute les événements et les transmet au worker
-# - redis : Service Redis pour le broker de messages et les streams
 #
 # Variables d'environnement (.env) :
-# - REDIS_URL : URL de connexion à Redis
+# - REDIS_URL : URL de connexion à Redis (service externe requis)
 # - PINECONE_API_KEY : Clé API Pinecone
 # - PINECONE_ENVIRONMENT : Environnement/index Pinecone
 # - LOG_LEVEL : Niveau de logging (INFO, DEBUG, etc.)
@@ -24,9 +23,6 @@ services:
       - "8001:8001" # Mappe le port 8001 de l'hôte au port 8001 du conteneur
     env_file:
       - .env # Charge les variables d'environnement depuis le fichier .env
-    depends_on:
-      redis:
-        condition: service_healthy # Attend que Redis soit prêt
     networks:
       - app_network
 
@@ -37,9 +33,6 @@ services:
       dockerfile: worker.Dockerfile # Utilise le Dockerfile spécifique au worker
     env_file:
       - .env # Charge les variables d'environnement depuis le fichier .env
-    depends_on:
-      redis:
-        condition: service_healthy # Attend que Redis soit prêt
     networks:
       - app_network
 
@@ -50,15 +43,9 @@ services:
       dockerfile: consumer.Dockerfile # Dockerfile dédié au consumer
     env_file:
       - .env # Charge REDIS_URL, LOG_LEVEL, etc.
-    depends_on:
-      redis:
-        condition: service_healthy # Attend que Redis soit prêt
     restart: unless-stopped
     networks:
       - app_network
-
-volumes:
-  redis_data: # Volume persistant pour les données Redis
 
 networks:
   app_network: # Définit un réseau personnalisé pour une meilleure isolation et un nommage clair
