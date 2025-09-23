@@ -13,15 +13,15 @@ Architecture :
 """
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import logging  # Configuration du système de logging
-import os  # Accès aux variables d'environnement
-import time  # Fonctions de temporisation et sleep
-from typing import Any, Dict  # Annotations de type pour la validation des données
+import logging
+import time
+import json
+import redis
+from dotenv import load_dotenv
+from typing import Dict, Any
 
-import json  # Manipulation des données JSON pour les payloads des messages Redis Streams
-import redis  # Client Redis pour les opérations sur les streams
-from dotenv import load_dotenv  # Chargement des variables d'environnement depuis .env
+# Ajouter le répertoire racine au PYTHONPATH pour les imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Charger .env en local
 load_dotenv()
@@ -51,9 +51,6 @@ def configure_redis_client() -> "redis.Redis[str]":
 def process_message(data: Dict[str, Any]) -> None:
     """Transmet l'événement à la tâche Celery de traitement candidat."""
     try:
-        import sys
-        import os
-        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from tasks.process_candidate import process_candidate_task  # import local pour éviter coût au boot
         process_candidate_task.delay(data)
         logger.info("Task dispatched for candidate_id=%s", data.get("candidate_id"))
