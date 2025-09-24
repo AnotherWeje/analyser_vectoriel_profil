@@ -14,7 +14,6 @@ FROM python:3.11-slim
 
 # Installation des dépendances système de base
 # git et curl peuvent être utiles pour le debugging
-RUN pip install --upgrade pip
 RUN apt update && apt install -y git curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,8 +22,8 @@ WORKDIR /app
 
 # Copie le fichier requirements minimal et installe les dépendances
 # Utilise requirements-consumer.txt qui ne contient que les packages essentiels
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-prod.txt .
+RUN pip install --no-cache-dir -r requirements-prod.txt
 
 # Copie le reste du code de l'application dans le conteneur
 COPY . .

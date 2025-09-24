@@ -9,9 +9,9 @@ RUN apt update && apt install -y git curl
 WORKDIR /app
 
 # Copie les requirements et installe les dépendances
-COPY requirements.txt .
+COPY requirements-prod.txt .
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-prod.txt
 
 # Copie le reste du code de l'application
 COPY . .

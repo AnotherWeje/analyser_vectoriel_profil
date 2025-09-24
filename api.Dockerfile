@@ -10,9 +10,9 @@ WORKDIR /app
 
 # Copie le fichier requirements.txt et installe les dépendances
 # Cela permet de tirer parti du cache Docker si les dépendances ne changent pas
-COPY requirements.txt .
+COPY requirements-prod.txt .
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-prod.txt
 
 # Copie le reste du code de l'application dans le conteneur
 COPY . .
@@ -22,4 +22,4 @@ EXPOSE 8001
 
 # Commande pour lancer le serveur Uvicorn
 # --host 0.0.0.0 est nécessaire pour que l'application soit accessible depuis l'extérieur du conteneur
-CMD ["dotenv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["dotenv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
