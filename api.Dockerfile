@@ -11,6 +11,7 @@ WORKDIR /app
 # Copie le fichier requirements.txt et installe les dépendances
 # Cela permet de tirer parti du cache Docker si les dépendances ne changent pas
 COPY requirements.txt .
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copie le reste du code de l'application dans le conteneur

@@ -14,6 +14,7 @@ FROM python:3.11-slim
 
 # Installation des dépendances système de base
 # git et curl peuvent être utiles pour le debugging
+RUN pip install --upgrade pip
 RUN apt update && apt install -y git curl \
     && rm -rf /var/lib/apt/lists/*
 
