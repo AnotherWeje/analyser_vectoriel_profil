@@ -98,6 +98,7 @@ app.conf.broker_transport_options = broker_transport_options
 app.conf.broker_connection_retry_on_startup = True
 app.conf.broker_connection_max_retries = None  # retry indéfini
 app.conf.broker_heartbeat = 30
+app.conf.broker_pool_limit = 0  # forcer des reconnexions propres en cas de bascule
 
 # Configuration robuste pour le backend de résultats Redis (timeouts, keepalive, health checks)
 result_backend_transport_options = {
@@ -110,6 +111,11 @@ result_backend_transport_options = {
     'socket_timeout': 10,
     'retry_on_timeout': True,
     'health_check_interval': 30,
+    # Stratégie de retry progressive côté transport pour encaisser les bascules
+    'max_retries': 100,
+    'interval_start': 0,
+    'interval_step': 2,
+    'interval_max': 30,
 }
 
 if redis_url_final.startswith('rediss://'):

@@ -33,6 +33,7 @@ services:
       dockerfile: worker.Dockerfile # Utilise le Dockerfile spécifique au worker
     env_file:
       - .env # Charge les variables d'environnement depuis le fichier .env
+    restart: unless-stopped
     networks:
       - app_network
 
