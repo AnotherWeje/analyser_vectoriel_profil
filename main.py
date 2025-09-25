@@ -13,6 +13,7 @@ Architecture :
 """
 
 from fastapi import FastAPI  # Framework web asynchrone pour l'API REST
+from fastapi.middleware.cors import CORSMiddleware  # Configuration CORS
 import logging  # Configuration du système de logging
 
 from logging_config import setup_logging  # Configuration centralisée du logging
@@ -26,6 +27,15 @@ app = FastAPI(
     title="Moteur de Matching Sémantique",
     description="API pour l'analyse sémantique et le matching de profils de candidats.",
     version="1.0.0"
+)
+
+# Configuration CORS - Autoriser toutes les origines
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Autorise toutes les origines
+    allow_credentials=True,
+    allow_methods=["*"],  # Autorise toutes les méthodes HTTP
+    allow_headers=["*"],  # Autorise tous les headers
 )
 
 logger = logging.getLogger(__name__)
@@ -43,6 +53,13 @@ def startup_event():
 
 app.include_router(monitoring_router, prefix="/monitoring", tags=["Monitoring"])
 app.include_router(matching_router, tags=["Matching & Candidates"])
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """
+    Endpoint pour favicon.ico - évite les erreurs 404 dans les logs.
+    """
+    return {"message": "No favicon available"}
 
 @app.get("/", tags=["Root"])
 def read_root():
