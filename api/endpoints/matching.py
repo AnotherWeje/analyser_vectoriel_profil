@@ -1,6 +1,6 @@
 import logging
 import os
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from models.candidate import Candidate, Job
 from services.nlp_service import NLPService
@@ -10,6 +10,33 @@ from tasks.process_candidate import process_candidate_task
 logger = logging.getLogger(__name__)
 router = APIRouter()
 nlp_service = NLPService()
+
+# Gestion explicite des requêtes OPTIONS préflight pour CORS
+@router.options("/match")
+async def options_match():
+    """
+    Gestion des requêtes OPTIONS préflight pour l'endpoint /match.
+    Nécessaire pour que les navigateurs puissent faire des requêtes cross-origin.
+    """
+    return Response(status_code=200, headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Credentials": "true"
+    })
+
+@router.options("/candidates")
+async def options_candidates():
+    """
+    Gestion des requêtes OPTIONS préflight pour l'endpoint /candidates.
+    Nécessaire pour que les navigateurs puissent faire des requêtes cross-origin.
+    """
+    return Response(status_code=200, headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Credentials": "true"
+    })
 
 # Seuil minimal configurable pour considérer qu'un match est acceptable
 try:
